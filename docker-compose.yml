@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # 1. Database Service
+  mysqldb:
+    image: mysql:8.0
+    container_name: tunematch-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: tunematch_db
+      MYSQL_USER: tunematch_user
+      MYSQL_PASSWORD: tunematch_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: always
+
+  # 2. Backend Service
+  backend:
+    build: ./tunematch
+    container_name: tunematch-backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysqldb
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysqldb:3306/tunematch_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: tunematch_user
+      SPRING_DATASOURCE_PASSWORD: tunematch_password
+      PYTHON_API_URL: http://analysis-api:8000/analyze
+
+  # 3. Python Analysis API
+  analysis-api:
+    build: ./tunematch-research
+    container_name: tunematch-analysis-api
+    ports:
+      - "8000:8000"
+
+  # 4. Frontend Service
+  frontend:
+    build: ./tunematch-frontend
+    container_name: tunematch-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
